@@ -1,54 +1,44 @@
-<?php include('../config.php'); ?>
+<?php include('config.php'); ?>
 <?php include('header.php'); ?>
 
-<!-- menüü -->
- <div class="container mt-4">
-<div class="row row-cols-1 row-cols-md-4">
+<!-- sisu -->
+<div class="container">
+    <div class="row row-cols-1 row-cols-md-4 g-4">
+<!-- üks auto -->
+<?php
+    $paring = "SELECT * FROM cars";
+    if (!empty($_GET["otsi"])) {
+        $otsing = $_GET["otsi"];
+        $paring .= " WHERE mark LIKE '%".$otsing."%'";
+    } 
+    $paring .= " LIMIT 8";
+    // var_dump($_GET["otsi"]);
 
+    $valjund = mysqli_query($yhendus, $paring); //saadan päringu andmebaasi
+    while($rida = mysqli_fetch_assoc($valjund)){       //sikutan vastuse alla
+        // var_dump($rida);                            //kuvan testvastuse
+?>
+    <div class="col">
+        <div class="card">
+        <img src="https://loremflickr.com/400/250/<?php echo str_replace(" ","", $rida["mark"]); ?>" class="card-img-top" alt="<?php echo $rida["mark"]; ?>">
+        <div class="card-body">
+            <h5 class="card-title"><?php echo $rida["mark"]; ?> <?php echo $rida["model"]; ?></h5>
+            <p class="card-text">
+                Mootor: <?php echo $rida["engine"]; ?> <br>
+                Kütus: <?php echo $rida["fuel"]; ?><br>
+                Hind: <?php echo $rida["price"]; ?>€/päev<br>
+            </p>
+            <a href="single_car.php?id=<?php echo $rida["id"]; ?>" class="btn btn-dark w-100">Rendi</a>
+        </div>
+        </div>
+    </div>
+    <?php } ?>
+        <!-- /üks auto -->
+    </div>
+</div>
+<!-- /sisu -->
 
-<div class="col-12 col-md-6 col-lg-3">
-<div class="card h-100">
-<img src="https://tse1.mm.bing.net/th/id/OIP.tZRWDAwW53LVy_JHwE3j7wHaEK?rs=1&pid=ImgDetMain&o=7&rm=3" class="card-img-top" alt="BMWW">
-<div class="card-body">
-<h5 class="card-title">BMW</h5>
-<p class="card-text">Mootor: 3.0 </p>
-<a href="#" class="btn btn-primary">LINK</a>
-</div>
-</div>
-</div>
-
-<div class="col-12 col-md-6 col-lg-3">
-<div class="card h-100">
-<img src="https://www.actualidadmotor.com/wp-content/uploads/2022/08/audi-a5-sportback-s-line-118-1.jpg" class="card-img-top" alt="Audi A5">
-<div class="card-body">
-<h5 class="card-title">AUDI A5</h5>
-<p class="card-text">uus</p>
-<a href="#" class="btn btn-primary">LINK</a>
-</div>
-</div>
-</div>
-
-<div class="col-12 col-md-6 col-lg-3">
-<div class="card h-100">
-<img src="https://th.bing.com/th/id/OIP.SOh49F2RHf_o5TKHQqo_vQHaEK?w=323&h=182&c=7&r=0&o=7&pid=1.7&rm=3" class="card-img-top" alt="OPEL">
-<div class="card-body">
-<h5 class="card-title">OPEL</h5>
-<p class="card-text">MOOTOR 1.0</p>
-<a href="#" class="btn btn-primary">LINK</a>
-</div>
-</div>
-</div>
-
-<div class="col-12 col-md-6 col-lg-3">
-<div class="card h-100">
-<img src="https://static1.topspeedimages.com/wordpress/wp-content/uploads/2024/06/2024-mercedes-benz-gle-2.jpg" class="card-img-top" alt="MERCEDES">
-<div class="card-body">
-<h5 class="card-title">MERCEDES</h5>
-<p class="card-text">Mootor: 5.0</p>
-<a href="#" class="btn btn-primary">LINK</a>
-</div>
-</div>
-</div>
-
-</div>
-</div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+  </body>
+</html>
