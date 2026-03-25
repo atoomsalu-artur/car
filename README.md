@@ -1,23 +1,30 @@
-# Autorent
+# Kirjeldus mida ma tegin
 
-Projekt töötab Apache, PHP, MySQL/MariaDB ja phpMyAdmin abil.
+# Paigaldus
+- kloonisin projekti GitHubist
+- panin projekti kausta `/var/www/html/car`
+- paigaldasin Apache, PHP ja MySQL/MariaDB
+- tegin andmebaasi `car_rent`
+- importisin SQL faili
+- seadistasin andmebaasi ühenduse failis `config.php`
 
-## Paigaldus
-- GitHubi projekt klooniti serverisse
-- projekt paigutati kausta `/var/www/html/car`
-- loodi andmebaas `car_rent`
-- imporditi SQL fail
-- seadistati andmebaasi ühendus failis `config.php`
-
-## Lisatud funktsionaalsus
-- lisatud tabel `users`
-- lisatud tabel `reservations`
-- lisatud kasutaja registreerimise leht `register.php`
-- lisatud auto broneerimisvorm failis `single_car.php`
-- koguhind arvutatakse valemiga: päevade arv × auto hind päevas
+## Funktsioonid
+- avalehel kuvatakse autod
+- saab otsida autosid
+- kasutaja saab registreerida (`register.php`)
+- saab vaadata auto infot (`single_car.php`)
+- saab teha broneeringu (algus ja lõpp kuupäev)
+- hind arvutatakse päevade järgi
 - broneering salvestatakse andmebaasi
 
+## Andmebaas
+- cars (autod)
+- users (kasutajad)
+- reservations (broneeringud)
+
 ## Failid
-- `register.php`
-- `single_car.php`
-- `car_rent_dump.sql`
+- index.php
+- single_car.php
+- register.php
+- config.php
+- car_rent_dump.sql
