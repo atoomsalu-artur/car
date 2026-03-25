@@ -1,77 +1,110 @@
-<?php include('config.php'); ?>
+<?php
+include("config.php");
+include("header.php");
 
-<!doctype html>
-<html lang="et">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Autorent</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-  </head>
-  <body>
-    <!-- menüü -->
-      <nav class="navbar navbar-expand-lg bg-body-tertiary mb-4">
-  <div class="container">
-    <a class="navbar-brand" href="#">Autorent</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item">
-          <a class="nav-link active" href="#">Home</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#">Link</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#">Link</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#">Link</a>
-        </li>
-      </ul>
-      <form class="d-flex" role="search" method="get" action="index.php">
-        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" name="otsi">
-        <button class="btn btn-outline-success" type="submit">Otsi</button>
-      </form>
-    </div>
-  </div>
-</nav>
-    <!-- /menüü -->
-<!-- sisu -->
+$message = "";
+
+if (!isset($_GET["id"])) {
+    die("Auto ID puudub.");
+}
+
+$id = (int)$_GET["id"];
+
+$paring = "SELECT * FROM cars WHERE id = $id";
+$valjund = mysqli_query($yhendus, $paring);
+$rida = mysqli_fetch_assoc($valjund);
+
+if (!$rida) {
+    die("Autot ei leitud.");
+}
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $user_id = (int)$_POST["user_id"];
+    $start_date = $_POST["start_date"];
+    $end_date = $_POST["end_date"];
+    $price_per_day = $rida["price"];
+
+    if (!empty($user_id) && !empty($start_date) && !empty($end_date)) {
+        $start = new DateTime($start_date);
+        $end = new DateTime($end_date);
+
+        if ($end >= $start) {
+            $days = $start->diff($end)->days + 1;
+            $total_price = $days * $price_per_day;
+
+            $sql = "INSERT INTO reservations (user_id, car_id, start_date, end_date, total_price)
+                    VALUES ('$user_id', '$id', '$start_date', '$end_date', '$total_price')";
+
+            if (mysqli_query($yhendus, $sql)) {
+                $message = "Broneering õnnestus! Koguhind: " . $total_price . " €";
+            } else {
+                $message = "Viga: " . mysqli_error($yhendus);
+            }
+        } else {
+            $message = "Lõppkuupäev peab olema hilisem või sama mis alguskuupäev.";
+        }
+    } else {
+        $message = "Palun täida kõik väljad.";
+    }
+}
+
+$users_result = mysqli_query($yhendus, "SELECT * FROM users");
+?>
+
 <div class="container">
+    <a href="index.php" class="btn btn-dark mb-3">Tagasi</a>
 
-    <a href="index.php" class="btn btn-dark">Tagasi</a>
+    <?php if (!empty($message)) { ?>
+        <div class="alert alert-info"><?php echo $message; ?></div>
+    <?php } ?>
 
     <div class="row">
-<?php
-    $id = $_GET['id'];
-    $paring = "SELECT * FROM cars WHERE id=".$id."";
-    $valjund = mysqli_query($yhendus, $paring);
-    $rida = mysqli_fetch_assoc($valjund);
-    // print_r($rida);
-?>
-        <div class="col">
+        <div class="col-md-6">
             <h1><?php echo $rida["mark"]; ?> <?php echo $rida["model"]; ?></h1>
-            <p>Mootor:  <?php echo $rida["engine"]; ?></p>
-            <p>Kütus:  <?php echo $rida["fuel"]; ?></p>
-            <p>Hind:  <?php echo $rida["price"]; ?></p>
+            <p>Mootor: <?php echo $rida["engine"]; ?></p>
+            <p>Kütus: <?php echo $rida["fuel"]; ?></p>
             <p>Aasta: <?php echo $rida["year"]; ?></p>
-            <p>Staatus: <php echo $rida["status"]; ?></p>
+            <p>Staatus: <?php echo $rida["status"]; ?></p>
             <p>Käigukast: <?php echo $rida["transmission"]; ?></p>
             <p>Istmed: <?php echo $rida["seats"]; ?></p>
-            <p class="fs-5">Hind: <?php echo $rida["price"]; ?></p>
-            <a href="#" class="btn btn-dark w-100"> Rendi auto </a>
+            <p class="fs-5"><strong>Hind: <?php echo $rida["price"]; ?> €/päev</strong></p>
+
+            <hr>
+
+            <h3>Broneeri auto</h3>
+            <form method="post">
+                <div class="mb-3">
+                    <label class="form-label">Kasutaja</label>
+                    <select name="user_id" class="form-control" required>
+                        <option value="">Vali kasutaja</option>
+                        <?php while($user = mysqli_fetch_assoc($users_result)) { ?>
+                            <option value="<?php echo $user["id"]; ?>">
+                                <?php echo $user["name"]; ?> (ID: <?php echo $user["id"]; ?>)
+                            </option>
+                        <?php } ?>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Alguskuupäev</label>
+                    <input type="date" name="start_date" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Lõppkuupäev</label>
+                    <input type="date" name="end_date" class="form-control" required>
+                </div>
+
+                <button type="submit" class="btn btn-dark w-100">Arvuta koguhind ja salvesta</button>
+            </form>
         </div>
-        <div class="col">
-            <img src="https://loremflickr.com/800/500/<?php echo str_replace(" ","", $rida["mark"]); ?>" class="card-img-top img-fluid" alt="<?php echo $rida["mark"]; ?>">
+
+        <div class="col-md-6">
+            <img src="https://loremflickr.com/800/500/<?php echo str_replace(' ', '', $rida["mark"]); ?>" class="card-img-top img-fluid" alt="<?php echo $rida["mark"]; ?>">
         </div>
     </div>
 </div>
-<!-- /sisu -->
 
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-  </body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+</body>
 </html>

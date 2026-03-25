@@ -1,16 +1,12 @@
 <?php
-$db_server = 'localhost';
-$db_andmebaas = 'car_rent';
-$db_kasutaja = 'artur';
-$db_salasona = 'artur';
+$host = "localhost";
+$user = "caruser";
+$pass = "carpass123";
+$dbname = "car_rent";
 
+$yhendus = mysqli_connect($host, $user, $pass, $dbname);
 
-// Ühendus andmebaasiga
-$yhendus = mysqli_connect($db_server, $db_kasutaja, $db_salasona, $db_andmebaas);
-
-
-// Ühenduse kontroll
 if (!$yhendus) {
-    die('Ei saa ühendust andmebaasiga');
+    die("Andmebaasi ühendus ebaõnnestus: " . mysqli_connect_error());
 }
 ?>
