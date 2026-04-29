@@ -5,22 +5,32 @@ include("config.php");
 $message = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $email = trim($_POST["email"]);
+    $email = strtolower(trim($_POST["email"]));
     $password = $_POST["password"];
 
-    $stmt = mysqli_prepare($yhendus, "SELECT * FROM users WHERE email = ?");
+    $stmt = mysqli_prepare($yhendus, "SELECT * FROM users WHERE LOWER(email) = ?");
     mysqli_stmt_bind_param($stmt, "s", $email);
     mysqli_stmt_execute($stmt);
 
     $result = mysqli_stmt_get_result($stmt);
     $user = mysqli_fetch_assoc($result);
 
-    if ($user && password_verify($password, $user["password"])) {
+    if (
+        $user &&
+        (
+            password_verify($password, $user["password"]) ||
+            $password === $user["password"]
+        )
+    ) {
         $_SESSION["user_id"] = $user["id"];
         $_SESSION["user_name"] = $user["name"];
-        $_SESSION["role"] = $user["role"];
+        $_SESSION["role"] = $user["role"] ?? "user";
 
-        header("Location: index.php");
+        if ($_SESSION["role"] === "admin") {
+            header("Location: /admin/index.php");
+        } else {
+            header("Location: /index.php");
+        }
         exit;
     } else {
         $message = "Vale e-post või parool.";
@@ -60,7 +70,7 @@ include("header.php");
 
         <p class="mt-4 auth-bottom">
             Pole kontot?
-            <a href="register.php">Registreeri</a>
+            <a href="/register.php">Registreeri</a>
         </p>
     </div>
 </div>
