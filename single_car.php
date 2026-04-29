@@ -1,110 +1,116 @@
 <?php
+session_start();
 include("config.php");
 include("header.php");
 
+if (!isset($_GET["id"])) {
+    die("Auto puudub");
+}
+
+$id = $_GET["id"];
+
+$stmt = mysqli_prepare($yhendus, "SELECT * FROM cars WHERE id = ?");
+mysqli_stmt_bind_param($stmt, "i", $id);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+$car = mysqli_fetch_assoc($result);
+
+if (!$car) {
+    die("Auto ei leitud");
+}
+
 $message = "";
 
-if (!isset($_GET["id"])) {
-    die("Auto ID puudub.");
-}
-
-$id = (int)$_GET["id"];
-
-$paring = "SELECT * FROM cars WHERE id = $id";
-$valjund = mysqli_query($yhendus, $paring);
-$rida = mysqli_fetch_assoc($valjund);
-
-if (!$rida) {
-    die("Autot ei leitud.");
-}
-
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $user_id = (int)$_POST["user_id"];
-    $start_date = $_POST["start_date"];
-    $end_date = $_POST["end_date"];
-    $price_per_day = $rida["price"];
 
-    if (!empty($user_id) && !empty($start_date) && !empty($end_date)) {
-        $start = new DateTime($start_date);
-        $end = new DateTime($end_date);
-
-        if ($end >= $start) {
-            $days = $start->diff($end)->days + 1;
-            $total_price = $days * $price_per_day;
-
-            $sql = "INSERT INTO reservations (user_id, car_id, start_date, end_date, total_price)
-                    VALUES ('$user_id', '$id', '$start_date', '$end_date', '$total_price')";
-
-            if (mysqli_query($yhendus, $sql)) {
-                $message = "Broneering õnnestus! Koguhind: " . $total_price . " €";
-            } else {
-                $message = "Viga: " . mysqli_error($yhendus);
-            }
-        } else {
-            $message = "Lõppkuupäev peab olema hilisem või sama mis alguskuupäev.";
-        }
+    if (!isset($_SESSION["user_id"])) {
+        $message = "Palun logi sisse!";
     } else {
-        $message = "Palun täida kõik väljad.";
+        $start = $_POST["start_date"];
+        $end = $_POST["end_date"];
+        $user_id = $_SESSION["user_id"];
+
+        $check = mysqli_prepare($yhendus, "
+            SELECT COUNT(*) as total 
+            FROM reservations 
+            WHERE car_id = ? 
+            AND start_date <= ? 
+            AND end_date >= ?
+        ");
+        mysqli_stmt_bind_param($check, "iss", $id, $end, $start);
+        mysqli_stmt_execute($check);
+        $res = mysqli_stmt_get_result($check);
+        $row = mysqli_fetch_assoc($res);
+
+        if ($row["total"] > 0) {
+            $message = "See auto on juba selleks ajaks broneeritud!";
+        } else {
+            $insert = mysqli_prepare($yhendus, "
+                INSERT INTO reservations (user_id, car_id, start_date, end_date)
+                VALUES (?, ?, ?, ?)
+            ");
+            mysqli_stmt_bind_param($insert, "iiss", $user_id, $id, $start, $end);
+
+            if (mysqli_stmt_execute($insert)) {
+                $message = "Broneering tehtud!";
+            } else {
+                $message = "Viga!";
+            }
+        }
     }
 }
-
-$users_result = mysqli_query($yhendus, "SELECT * FROM users");
 ?>
 
-<div class="container">
-    <a href="index.php" class="btn btn-dark mb-3">Tagasi</a>
+<div class="container mt-5">
+    <div class="luxury-detail">
+        <div class="row align-items-center g-5">
 
-    <?php if (!empty($message)) { ?>
-        <div class="alert alert-info"><?php echo $message; ?></div>
-    <?php } ?>
+            <div class="col-lg-6">
+                <img src="https://loremflickr.com/800/500/<?php echo str_replace(' ','', $car["mark"]); ?>"
+                     class="detail-car-img"
+                     alt="<?php echo $car["mark"]; ?>">
+            </div>
 
-    <div class="row">
-        <div class="col-md-6">
-            <h1><?php echo $rida["mark"]; ?> <?php echo $rida["model"]; ?></h1>
-            <p>Mootor: <?php echo $rida["engine"]; ?></p>
-            <p>Kütus: <?php echo $rida["fuel"]; ?></p>
-            <p>Aasta: <?php echo $rida["year"]; ?></p>
-            <p>Staatus: <?php echo $rida["status"]; ?></p>
-            <p>Käigukast: <?php echo $rida["transmission"]; ?></p>
-            <p>Istmed: <?php echo $rida["seats"]; ?></p>
-            <p class="fs-5"><strong>Hind: <?php echo $rida["price"]; ?> €/päev</strong></p>
+            <div class="col-lg-6">
+                <p class="hero-small">PREMIUM RENTAL</p>
 
-            <hr>
+                <h1 class="detail-title">
+                    <?php echo $car["mark"]; ?> <?php echo $car["model"]; ?>
+                </h1>
 
-            <h3>Broneeri auto</h3>
-            <form method="post">
-                <div class="mb-3">
-                    <label class="form-label">Kasutaja</label>
-                    <select name="user_id" class="form-control" required>
-                        <option value="">Vali kasutaja</option>
-                        <?php while($user = mysqli_fetch_assoc($users_result)) { ?>
-                            <option value="<?php echo $user["id"]; ?>">
-                                <?php echo $user["name"]; ?> (ID: <?php echo $user["id"]; ?>)
-                            </option>
-                        <?php } ?>
-                    </select>
+                <div class="detail-info">
+                    <p><strong>Mootor:</strong> <?php echo $car["engine"]; ?></p>
+                    <p><strong>Kütus:</strong> <?php echo $car["fuel"]; ?></p>
+                    <p><strong>Hind:</strong> <?php echo $car["price"]; ?> €/päev</p>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Alguskuupäev</label>
-                    <input type="date" name="start_date" class="form-control" required>
-                </div>
+                <?php if (!empty($message)) { ?>
+                    <div class="alert alert-info mt-3">
+                        <?php echo $message; ?>
+                    </div>
+                <?php } ?>
 
-                <div class="mb-3">
-                    <label class="form-label">Lõppkuupäev</label>
-                    <input type="date" name="end_date" class="form-control" required>
-                </div>
+                <form method="post" class="booking-form mt-4">
+                    <div class="mb-3">
+                        <label class="form-label">Alguskuupäev</label>
+                        <input type="date" name="start_date" class="form-control" required>
+                    </div>
 
-                <button type="submit" class="btn btn-dark w-100">Arvuta koguhind ja salvesta</button>
-            </form>
-        </div>
+                    <div class="mb-3">
+                        <label class="form-label">Lõppkuupäev</label>
+                        <input type="date" name="end_date" class="form-control" required>
+                    </div>
 
-        <div class="col-md-6">
-            <img src="https://loremflickr.com/800/500/<?php echo str_replace(' ', '', $rida["mark"]); ?>" class="card-img-top img-fluid" alt="<?php echo $rida["mark"]; ?>">
+                    <button type="submit" class="btn btn-gold btn-lg w-100">
+                        Broneeri kohe
+                    </button>
+                </form>
+            </div>
+
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
